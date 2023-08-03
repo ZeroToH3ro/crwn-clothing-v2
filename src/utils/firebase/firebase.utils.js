@@ -2,16 +2,16 @@
 import {initializeApp} from "firebase/app";
 import {getAnalytics} from "firebase/analytics";
 import {
+    createUserWithEmailAndPassword,
     getAuth,
+    GoogleAuthProvider,
+    onAuthStateChanged,
+    signInWithEmailAndPassword,
     signInWithPopup,
     signInWithRedirect,
-    createUserWithEmailAndPassword,
-    GoogleAuthProvider,
-    signInWithEmailAndPassword,
-    signOut,
-    onAuthStateChanged
+    signOut
 } from "firebase/auth";
-import {getFirestore, doc, getDoc, setDoc} from "firebase/firestore";
+import {collection, doc, getDoc, getDocs, getFirestore, query, setDoc, writeBatch} from "firebase/firestore";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -57,6 +57,30 @@ export const signOutUser = async () => await signOut(auth);
 export const onAuthStateChangedListener = async (callback) => await onAuthStateChanged(auth, callback);
 //Setup database
 export const db = getFirestore();
+//Database collection and document
+export const addCollectionAndDocuments = async (collectionKey, objectsToAdd) => {
+    const collectionRef = collection(db, collectionKey);
+    const batch = writeBatch(db);
+
+    objectsToAdd.forEach((object) => {
+        const docRef = doc(collectionRef, object.title.toLowerCase());
+        batch.set(docRef, object);
+    });
+
+    await batch.commit();
+    console.log('done');
+}
+//Get categories and documents
+export const getCategoriesAndDocuments = async () => {
+    const collectionRef = collection(db, 'categories');
+    const q = query(collectionRef);
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.reduce((acc, docSnapshot) => {
+        const {title, items} = docSnapshot.data();
+        acc[title.toLowerCase()] = items;
+        return acc;
+    }, {});
+}
 //Create database
 export const createUserDocumentFromAuth = async (
     userAuth,
@@ -85,3 +109,5 @@ export const createUserDocumentFromAuth = async (
 
     return userDocRef;
 };
+
+
